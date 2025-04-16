@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation'; // Ajout de useSearchParams
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Info, Package, DollarSign, Layers } from "lucide-react";
@@ -12,146 +12,298 @@ import Link from 'next/link';
 // Register Chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend, BarElement, CategoryScale, LinearScale);
 
-// Liste de projets (exemple avec plusieurs projets)
+// Data from the JSON file, adapted to the required structure
 const projectsData = [
   {
-    projet: { id: "PRJ-2025-001", nom: "BETA" },
+    projet: { id: "PRJ-2025-003", nom: "dfs" },
     charges_indirectes: {
-      total_fixe: 500000,
-      total_variable: 400000,
-      total: 900000,
+      total_fixe: 240000, // Sum of fixed charges (Loyer: 100000, Entretien: 20000, Salaires: 80000, Amortissements: 40000)
+      total_variable: 80000, // Sum of variable charges (Électricité: 50000, Eau et lubrifiants: 30000)
+      total: 320000, // Total of fixed + variable
       repartition_primaire_fixe: [
-        { nature: "Loyer", repartition: [
-          { section: "Atelier A", montant: 40 },
-          { section: "Atelier B", montant: 30 },
-          { section: "Entrepôt", montant: 20 },
-          { section: "Administration", montant: 10 }
-        ]},
-        // Ajoutez d'autres natures comme dans l'exemple original
+        {
+          nature: "Loyer",
+          repartition: [
+            { section: "Atelier 1", montant: 40 }, // Example percentages (adjust based on actual allocation logic)
+            { section: "Atelier 2", montant: 30 },
+            { section: "Magasin", montant: 20 },
+            { section: "Administration", montant: 10 }
+          ]
+        },
+        {
+          nature: "Entretien",
+          repartition: [
+            { section: "Atelier 1", montant: 50 },
+            { section: "Atelier 2", montant: 30 },
+            { section: "Magasin", montant: 10 },
+            { section: "Administration", montant: 10 }
+          ]
+        },
+        {
+          nature: "Salaires indirects",
+          repartition: [
+            { section: "Atelier 1", montant: 30 },
+            { section: "Atelier 2", montant: 30 },
+            { section: "Magasin", montant: 20 },
+            { section: "Administration", montant: 20 }
+          ]
+        },
+        {
+          nature: "Amortissements",
+          repartition: [
+            { section: "Atelier 1", montant: 50 },
+            { section: "Atelier 2", montant: 40 },
+            { section: "Magasin", montant: 5 },
+            { section: "Administration", montant: 5 }
+          ]
+        }
       ],
       repartition_primaire_variable: [
-        { nature: "Loyer", repartition: [
-          { section: "Atelier A", montant: 40 },
-          { section: "Atelier B", montant: 30 },
-          { section: "Entrepôt", montant: 20 },
-          { section: "Administration", montant: 10 }
-        ]},
-        // Ajoutez d'autres natures
+        {
+          nature: "Électricité",
+          repartition: [
+            { section: "Atelier 1", montant: 50 },
+            { section: "Atelier 2", montant: 30 },
+            { section: "Magasin", montant: 10 },
+            { section: "Administration", montant: 10 }
+          ]
+        },
+        {
+          nature: "Eau et lubrifiants",
+          repartition: [
+            { section: "Atelier 1", montant: 40 },
+            { section: "Atelier 2", montant: 40 },
+            { section: "Magasin", montant: 10 },
+            { section: "Administration", montant: 10 }
+          ]
+        }
       ],
       repartition_secondaire_fixe: [
         {
-          centre: "Entrepôt",
+          centre: "Magasin",
           repartition: [
-            { section: "Atelier A", montant: 60 },
-            { section: "Atelier B", montant: 40 }
+            { section: "Atelier 1", montant: 70 }, // From repartitions_secondaire (id: 29)
+            { section: "Atelier 2", montant: 30 }  // From repartitions_secondaire (id: 30)
           ]
         },
         {
           centre: "Administration",
           repartition: [
-            { section: "Atelier A", montant: 50 },
-            { section: "Atelier B", montant: 50 }
+            { section: "Atelier 1", montant: 50 }, // From repartitions_secondaire (id: 31)
+            { section: "Atelier 2", montant: 50 }  // From repartitions_secondaire (id: 32)
+          ]
+        }
+      ],
+      repartition_secondaire_variable: [
+        {
+          centre: "Magasin",
+          repartition: [
+            { section: "Atelier 1", montant: 70 }, // From repartitions_secondaire (id: 29)
+            { section: "Atelier 2", montant: 30 }  // From repartitions_secondaire (id: 30)
+          ]
+        },
+        {
+          centre: "Administration",
+          repartition: [
+            { section: "Atelier 1", montant: 50 }, // From repartitions_secondaire (id: 31)
+            { section: "Atelier 2", montant: 50 }  // From repartitions_secondaire (id: 32)
           ]
         }
       ]
     },
     couts_unitaires_sections: [
       {
-        nom: "Atelier A",
-        quantite: 2000,
-        total_fixe: 9600,
-        total_variable: 9600,
-        total: 100000,
-        cout_unitaire_fixe: 9600,
-        cout_unitaire_variable: 9600,
-        cout_unitaire_total: 19200,
-        unite: "Heure"
+        nom: "Atelier 1",
+        quantite: 2500, // From unites_oeuvre (id: 15)
+        total_fixe: 141800, // From sections (id: 33)
+        total_variable: 44600, // From sections (id: 33)
+        total: 186400, // total_fixe + total_variable
+        cout_unitaire_fixe: 56.72, // From unites_oeuvre (id: 15)
+        cout_unitaire_variable: 17.84, // From unites_oeuvre (id: 15)
+        cout_unitaire_total: 74.56, // From unites_oeuvre (id: 15)
+        unite: "Heure machine"
       },
-      // Ajoutez d'autres sections
+      {
+        nom: "Atelier 2",
+        quantite: 2000, // From unites_oeuvre (id: 16)
+        total_fixe: 98200, // From sections (id: 34)
+        total_variable: 35400, // From sections (id: 34)
+        total: 133600, // total_fixe + total_variable
+        cout_unitaire_fixe: 49.10, // From unites_oeuvre (id: 16)
+        cout_unitaire_variable: 17.70, // From unites_oeuvre (id: 16)
+        cout_unitaire_total: 66.80, // From unites_oeuvre (id: 16)
+        unite: "Heure de travail"
+      }
     ],
     couts_unitaires_produits: [
       {
-        nom: "Produit A",
-        cout_unitaire_fixe: 9600,
-        cout_unitaire_variable: 9600,
-        cout_unitaire_total: 19200,
-        unite: "Heure",
+        nom: "Produit X",
+        cout_unitaire_fixe: 162.54, // From produits (id: 17)
+        cout_unitaire_variable: 53.38, // From produits (id: 17)
+        cout_unitaire_total: 215.92, // From produits (id: 17)
+        unite: "Unité",
         consommation: [
-          { nom: "Atelier A", quantite: 1 },
-          { nom: "Atelier B", quantite: 2 }
+          { nom: "Atelier 1", quantite: 1 }, // Example (adjust based on actual data)
+          { nom: "Atelier 2", quantite: 2 }
         ]
       },
-      // Ajoutez d'autres produits
+      {
+        nom: "Produit Y",
+        cout_unitaire_fixe: 154.92, // From produits (id: 18)
+        cout_unitaire_variable: 53.24, // From produits (id: 18)
+        cout_unitaire_total: 208.16, // From produits (id: 18)
+        unite: "Unité",
+        consommation: [
+          { nom: "Atelier 1", quantite: 2 }, // Example (adjust based on actual data)
+          { nom: "Atelier 2", quantite: 1 }
+        ]
+      }
     ]
   },
   {
-    projet: { id: "PRJ-2025-002", nom: "ALFA" },
+    projet: { id: "PRJ-2025-010", nom: "Gamma" },
     charges_indirectes: {
-      total_fixe: 345000,
-      total_variable: 345000,
-      total: 690000,
+      total_fixe: 240000, // Same as project 9
+      total_variable: 80000, // Same as project 9
+      total: 320000, // Same as project 9
       repartition_primaire_fixe: [
-        { nature: "Loyer", repartition: [
-          { section: "Atelier A", montant: 40 },
-          { section: "Atelier B", montant: 30 },
-          { section: "Entrepôt", montant: 20 },
-          { section: "Administration", montant: 10 }
-        ]},
-        // Complétez avec les autres natures comme dans votre code
+        {
+          nature: "Loyer",
+          repartition: [
+            { section: "Atelier 1", montant: 40 },
+            { section: "Atelier 2", montant: 30 },
+            { section: "Magasin", montant: 20 },
+            { section: "Administration", montant: 10 }
+          ]
+        },
+        {
+          nature: "Entretien",
+          repartition: [
+            { section: "Atelier 1", montant: 50 },
+            { section: "Atelier 2", montant: 30 },
+            { section: "Magasin", montant: 10 },
+            { section: "Administration", montant: 10 }
+          ]
+        },
+        {
+          nature: "Salaires indirects",
+          repartition: [
+            { section: "Atelier 1", montant: 30 },
+            { section: "Atelier 2", montant: 30 },
+            { section: "Magasin", montant: 20 },
+            { section: "Administration", montant: 20 }
+          ]
+        },
+        {
+          nature: "Amortissements",
+          repartition: [
+            { section: "Atelier 1", montant: 50 },
+            { section: "Atelier 2", montant: 40 },
+            { section: "Magasin", montant: 5 },
+            { section: "Administration", montant: 5 }
+          ]
+        }
       ],
       repartition_primaire_variable: [
-        { nature: "Loyer", repartition: [
-          { section: "Atelier A", montant: 40 },
-          { section: "Atelier B", montant: 30 },
-          { section: "Entrepôt", montant: 20 },
-          { section: "Administration", montant: 10 }
-        ]},
-        // Complétez avec les autres natures
+        {
+          nature: "Électricité",
+          repartition: [
+            { section: "Atelier 1", montant: 50 },
+            { section: "Atelier 2", montant: 30 },
+            { section: "Magasin", montant: 10 },
+            { section: "Administration", montant: 10 }
+          ]
+        },
+        {
+          nature: "Eau et lubrifiants",
+          repartition: [
+            { section: "Atelier 1", montant: 40 },
+            { section: "Atelier 2", montant: 40 },
+            { section: "Magasin", montant: 10 },
+            { section: "Administration", montant: 10 }
+          ]
+        }
       ],
       repartition_secondaire_fixe: [
         {
-          centre: "Entrepôt",
+          centre: "Magasin",
           repartition: [
-            { section: "Atelier A", montant: 60 },
-            { section: "Atelier B", montant: 40 }
+            { section: "Atelier 1", montant: 70 }, // From repartitions_secondaire (id: 33)
+            { section: "Atelier 2", montant: 30 }  // From repartitions_secondaire (id: 34)
           ]
         },
         {
           centre: "Administration",
           repartition: [
-            { section: "Atelier A", montant: 50 },
-            { section: "Atelier B", montant: 50 }
+            { section: "Atelier 1", montant: 50 }, // From repartitions_secondaire (id: 35)
+            { section: "Atelier 2", montant: 50 }  // From repartitions_secondaire (id: 36)
+          ]
+        }
+      ],
+      repartition_secondaire_variable: [
+        {
+          centre: "Magasin",
+          repartition: [
+            { section: "Atelier 1", montant: 70 }, // From repartitions_secondaire (id: 33)
+            { section: "Atelier 2", montant: 30 }  // From repartitions_secondaire (id: 34)
+          ]
+        },
+        {
+          centre: "Administration",
+          repartition: [
+            { section: "Atelier 1", montant: 50 }, // From repartitions_secondaire (id: 35)
+            { section: "Atelier 2", montant: 50 }  // From repartitions_secondaire (id: 36)
           ]
         }
       ]
     },
     couts_unitaires_sections: [
       {
-        nom: "Atelier A",
-        quantite: 2000,
-        total_fixe: 9600,
-        total_variable: 9600,
-        total: 100000,
-        cout_unitaire_fixe: 9600,
-        cout_unitaire_variable: 9600,
-        cout_unitaire_total: 19200,
-        unite: "Heure"
+        nom: "Atelier 1",
+        quantite: 2500, // From unites_oeuvre (id: 17)
+        total_fixe: 141800, // From sections (id: 37)
+        total_variable: 44600, // From sections (id: 37)
+        total: 186400, // total_fixe + total_variable
+        cout_unitaire_fixe: 56.72, // From unites_oeuvre (id: 17)
+        cout_unitaire_variable: 17.84, // From unites_oeuvre (id: 17)
+        cout_unitaire_total: 74.56, // From unites_oeuvre (id: 17)
+        unite: "Heure machine"
       },
-      // Ajoutez d'autres sections
+      {
+        nom: "Atelier 2",
+        quantite: 2000, // From unites_oeuvre (id: 18)
+        total_fixe: 98200, // From sections (id: 38)
+        total_variable: 35400, // From sections (id: 38)
+        total: 133600, // total_fixe + total_variable
+        cout_unitaire_fixe: 49.10, // From unites_oeuvre (id: 18)
+        cout_unitaire_variable: 17.70, // From unites_oeuvre (id: 18)
+        cout_unitaire_total: 66.80, // From unites_oeuvre (id: 18)
+        unite: "Heure de travail"
+      }
     ],
     couts_unitaires_produits: [
       {
-        nom: "Produit A",
-        cout_unitaire_fixe: 9600,
-        cout_unitaire_variable: 9600,
-        cout_unitaire_total: 19200,
-        unite: "Heure",
+        nom: "Produit X",
+        cout_unitaire_fixe: 162.54, // From produits (id: 19)
+        cout_unitaire_variable: 53.38, // From produits (id: 19)
+        cout_unitaire_total: 215.92, // From produits (id: 19)
+        unite: "Unité",
         consommation: [
-          { nom: "Atelier A", quantite: 1 },
-          { nom: "Atelier B", quantite: 2 }
+          { nom: "Atelier 1", quantite: 1 }, // Example (adjust based on actual data)
+          { nom: "Atelier 2", quantite: 2 }
         ]
       },
-      // Ajoutez d'autres produits
+      {
+        nom: "Produit Y",
+        cout_unitaire_fixe: 154.92, // From produits (id: 20)
+        cout_unitaire_variable: 53.24, // From produits (id: 20)
+        cout_unitaire_total: 208.16, // From produits (id: 20)
+        unite: "Unité",
+        consommation: [
+          { nom: "Atelier 1", quantite: 2 }, // Example (adjust based on actual data)
+          { nom: "Atelier 2", quantite: 1 }
+        ]
+      }
     ]
   }
 ];
@@ -160,11 +312,11 @@ export default function Dashboard() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [chargeTypeFilter, setChargeTypeFilter] = useState('all');
-  const searchParams = useSearchParams(); // Récupérer les paramètres de l'URL
-  const projectId = searchParams.get('id'); // Récupérer l'ID du projet depuis l'URL
+  const searchParams = useSearchParams();
+  const projectId = searchParams.get('id');
   const [projectData, setProjectData] = useState(null);
 
-  // Trouver le projet correspondant à l'ID
+  // Find the project based on the ID
   useEffect(() => {
     const foundProject = projectsData.find(project => project.projet.id === projectId);
     if (foundProject) {
@@ -175,7 +327,7 @@ export default function Dashboard() {
     }, 200);
   }, [projectId]);
 
-  // Si aucun projet n'est trouvé, afficher un message
+  // Handle case where no project is found
   if (!projectData && isLoaded) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#DFEAF2] to-white flex items-center justify-center">
@@ -193,7 +345,7 @@ export default function Dashboard() {
     );
   }
 
-  // Si le projet n'est pas encore chargé, afficher un indicateur de chargement
+  // Show loading state
   if (!projectData) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#DFEAF2] to-white flex items-center justify-center">
@@ -202,14 +354,14 @@ export default function Dashboard() {
     );
   }
 
-  // Filtrer les charges en fonction du type sélectionné
+  // Filter charges based on selected type
   const filteredCharges = chargeTypeFilter === 'all'
     ? [...projectData.charges_indirectes.repartition_primaire_fixe, ...projectData.charges_indirectes.repartition_primaire_variable]
     : chargeTypeFilter === 'Fixe'
       ? projectData.charges_indirectes.repartition_primaire_fixe
       : projectData.charges_indirectes.repartition_primaire_variable;
 
-  // Données pour le graphique de répartition des charges
+  // Data for the charges pie chart
   const chargesPieData = {
     labels: filteredCharges.map(charge => charge.nature),
     datasets: [{
@@ -220,7 +372,7 @@ export default function Dashboard() {
     }],
   };
 
-  // Données pour le graphique fixe/variable
+  // Data for the fixed/variable pie chart
   const fixedVariableData = {
     labels: ['Coûts Fixes', 'Coûts Variables'],
     datasets: [{
@@ -234,7 +386,7 @@ export default function Dashboard() {
     }],
   };
 
-  // Données pour le graphique de coûts unitaires des sections
+  // Data for the section unit costs bar chart
   const unitCostsData = {
     labels: projectData.couts_unitaires_sections.map(section => section.nom),
     datasets: [
@@ -251,7 +403,7 @@ export default function Dashboard() {
     ],
   };
 
-  // Données pour le graphique des produits
+  // Data for the product costs bar chart
   const productCostsData = {
     labels: projectData.couts_unitaires_produits.map(product => product.nom),
     datasets: [
@@ -635,31 +787,59 @@ export default function Dashboard() {
                   <CardHeader>
                     <CardTitle className="text-lg font-semibold text-[#232323] flex items-center">
                       <Layers className="mr-2 h-5 w-5 text-[#718EBF]" />
-                      Répartition secondaire (Fixe)
+                      Répartition secondaire
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="overflow-x-auto rounded-md border border-[#DFEAF2] mb-6">
-                      <table className="min-w-full divide-y divide-[#DFEAF2]">
-                        <thead className="bg-[#DFEAF2]">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-[#232323]/70 uppercase">Centre</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-[#232323]/70 uppercase">Section</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-[#232323]/70 uppercase">Montant (%)</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-[#DFEAF2]">
-                          {projectData.charges_indirectes.repartition_secondaire_fixe.map((centre, index) =>
-                            centre.repartition.map((repartition, repIndex) => (
-                              <tr key={`${index}-${repIndex}`} className="hover:bg-[#DFEAF2]/50">
-                                <td className="px-6 py-4 text-sm font-medium text-[#232323]">{centre.centre}</td>
-                                <td className="px-6 py-4 text-sm text-[#232323]/70">{repartition.section}</td>
-                                <td className="px-6 py-4 text-sm text-[#232323]/70 text-right">{repartition.montant}%</td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold text-[#232323] mb-4">Répartition Fixe</h3>
+                      <div className="overflow-x-auto rounded-md border border-[#DFEAF2]">
+                        <table className="min-w-full divide-y divide-[#DFEAF2]">
+                          <thead className="bg-[#DFEAF2]">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-[#232323]/70 uppercase">Centre</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-[#232323]/70 uppercase">Section</th>
+                              <th className="px-6 py-3 text-right text-xs font-medium text-[#232323]/70 uppercase">Montant (%)</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-[#DFEAF2]">
+                            {projectData.charges_indirectes.repartition_secondaire_fixe.map((centre, index) =>
+                              centre.repartition.map((repartition, repIndex) => (
+                                <tr key={`${index}-${repIndex}`} className="hover:bg-[#DFEAF2]/50">
+                                  <td className="px-6 py-4 text-sm font-medium text-[#232323]">{centre.centre}</td>
+                                  <td className="px-6 py-4 text-sm text-[#232323]/70">{repartition.section}</td>
+                                  <td className="px-6 py-4 text-sm text-[#232323]/70 text-right">{repartition.montant}%</td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-[#232323] mb-4">Répartition Variable</h3>
+                      <div className="overflow-x-auto rounded-md border border-[#DFEAF2]">
+                        <table className="min-w-full divide-y divide-[#DFEAF2]">
+                          <thead className="bg-[#DFEAF2]">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-[#232323]/70 uppercase">Centre</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-[#232323]/70 uppercase">Section</th>
+                              <th className="px-6 py-3 text-right text-xs font-medium text-[#232323]/70 uppercase">Montant (%)</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-[#DFEAF2]">
+                            {projectData.charges_indirectes.repartition_secondaire_variable.map((centre, index) =>
+                              centre.repartition.map((repartition, repIndex) => (
+                                <tr key={`${index}-${repIndex}`} className="hover:bg-[#DFEAF2]/50">
+                                  <td className="px-6 py-4 text-sm font-medium text-[#232323]">{centre.centre}</td>
+                                  <td className="px-6 py-4 text-sm text-[#232323]/70">{repartition.section}</td>
+                                  <td className="px-6 py-4 text-sm text-[#232323]/70 text-right">{repartition.montant}%</td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

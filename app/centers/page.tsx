@@ -11,7 +11,7 @@ export default function ProjectsPage() {
   // Exemple de données - à remplacer par des données dynamiques
   const projects = [
     {
-      id: "PRJ-2025-002", 
+      id_: "PRJ-2025-002", 
       name: "ALFA",
       description: "Analyse détaillée des coûts de revient du nouveau produit X par méthode des sections homogènes.",
       lastUpdated: "08/04/2025"
