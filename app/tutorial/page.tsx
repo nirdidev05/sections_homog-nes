@@ -2,10 +2,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PlusCircle, Folder, ArrowRight, Home } from "lucide-react";
 import { 
   BarChart3, 
   BookOpen, 
-  ArrowRight, 
   LineChart, 
   ChevronDown,
   BarChart,
@@ -75,22 +75,25 @@ export default function Tutorial() {
   const parallaxOffset = scrollPosition * 0.1;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-[#f7f9fc] overflow-hidden">
-      {/* Formes décoratives */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-[#718EBF] opacity-10 rounded-full translate-x-1/2 -translate-y-1/2 blur-3xl"></div>
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#6B9080] opacity-10 rounded-full -translate-x-1/2 translate-y-1/2 blur-3xl"></div>
-      
-      {/* Header avec animation de fondu */}
-      <header 
-        className={`bg-gradient-to-r from-[#718EBF] to-[#6B9080] text-white py-6 sticky top-0 z-10 shadow-md transition-all duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0 -translate-y-4'}`}
-      >
-        <div className="container mx-auto px-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <LineChart className="w-6 h-6" />
-            <h1 className="text-3xl font-bold">MSH Analytics</h1>
-          </div>
+    <div className="min-h-screen bg-gradient-to-b from-white to-[#f7f9fc]">
+    {/* Header */}
+    <header 
+      className={`bg-gradient-to-r from-[#718EBF] to-[#6B9080] text-white py-6 sticky top-0 z-10 shadow-md transition-all duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0 -translate-y-4'}`}
+    >
+      <div className="container mx-auto px-4 flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          <Folder className="w-6 h-6" />
+          <h1 className="text-3xl font-bold">MSH Analytics</h1>
         </div>
-      </header>
+        <Link 
+          href="/"
+          className="flex items-center gap-2 text-white hover:text-gray-200 transition-colors"
+        >
+          <Home className="w-5 h-5" />
+          Accueil
+        </Link>
+      </div>
+    </header>
       
       <div className="container mx-auto px-4 py-16 relative flex flex-col lg:flex-row gap-8">
         {/* Barre latérale de navigation */}
@@ -698,14 +701,14 @@ export default function Tutorial() {
             <div>
               <h3 className="text-xl font-semibold mb-4">Liens rapides</h3>
               <ul className="space-y-2">
-                <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Accueil</a></li>
-                <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Documentation</a></li>
-                <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Contact</a></li>
+              <li><a href="/" className="hover:text-white/80 transition-colors">Accueil</a></li>
+              <li><a href="/tutorial" className="hover:text-white/80 transition-colors">Documentation</a></li>
+              <li><a href="mailto:s_boukhedimi@esi.dz" className="hover:text-white/80 transition-colors">Contact</a></li>
               </ul>
             </div>
             <div>
               <h3 className="text-xl font-semibold mb-4">Contact</h3>
-              <p className="text-gray-300">info@msh-analytics.fr</p>
+              <p className="text-gray-300">s_boukhedimi@esi.dz</p>
             </div>
           </div>
           <div className="border-t border-gray-700 pt-6 text-center">

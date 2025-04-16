@@ -56,12 +56,12 @@ const projectsData = [
         { "nom": "Produit B" }
       ],
       "charges_indirectes": [
-        { "nature": "Loyer", "montant": 120000 },
-        { "nature": "Électricité", "montant": 60000 },
-        { "nature": "Entretien", "montant": 30000 },
-        { "nature": "Salaires indirects", "montant": 90000 },
-        { "nature": "Amortissements", "montant": 45000 }
-      ],
+  { "nature": "Loyer", "montant": 120000, "type": "Fixe" },
+  { "nature": "Électricité", "montant": 60000, "type": "Variable" },
+  { "nature": "Entretien", "montant": 30000, "type": "Variable" },
+  { "nature": "Salaires indirects", "montant": 90000, "type": "Fixe" },
+  { "nature": "Amortissements", "montant": 45000, "type": "Fixe" }
+],
       "sections": [
         { "nom": "Atelier A", "type": "primaire" },
         { "nom": "Atelier B", "type": "primaire" },
@@ -245,6 +245,7 @@ export default function ProjectView() {
   const [chargeFilter, setChargeFilter] = useState('all');
   const searchParams = useSearchParams();
   const projectId = searchParams?.get('id') || '';
+  const [chargeTypeFilter, setChargeTypeFilter] = useState('all');
 
   useEffect(() => {
     setIsLoaded(true);
@@ -255,7 +256,8 @@ export default function ProjectView() {
 
   // Filter data based on selections
   const filteredCharges = projectDetails?.charges_indirectes?.filter((charge: any) =>
-    chargeFilter === 'all' || charge.nature === chargeFilter
+    (chargeFilter === 'all' || charge.nature === chargeFilter) && 
+    (chargeTypeFilter === 'all' || charge.type === chargeTypeFilter)
   ) || [];
 
   const filteredSections = projectDetails?.sections?.filter((section: any) =>
@@ -353,15 +355,15 @@ export default function ProjectView() {
   const exportToCSV = (data: any) => {
     setIsLoading(true);
     const csvData: any[] = [
-      ['Project Information'],
-      ['ID', data.projet.id],
-      ['Name', data.projet.nom],
-      ['Description', data.projet.description],
-      ['Last Updated', data.projet.lastUpdated],
-      [],
-      ['Filtered Indirect Costs'],
-      ['Nature', 'Amount (€)'],
-      ...filteredCharges.map((c: any) => [c.nature, c.montant]),
+        ['Project Information'],
+        ['ID', data.projet.id],
+        ['Name', data.projet.nom],
+        ['Description', data.projet.description],
+        ['Last Updated', data.projet.lastUpdated],
+        [],
+        ['Filtered Indirect Costs'],
+        ['Nature', 'Type', 'Amount (€)'],
+        ...filteredCharges.map((c: any) => [c.nature, c.type, c.montant]),
       [],
       ['Filtered Sections'],
       ['Name', 'Type'],
@@ -454,7 +456,18 @@ export default function ProjectView() {
       </div>
     );
   }
-
+// Données pour le graphique de répartition fixe/variable
+const fixedVariableChartData = {
+    labels: ['Coûts Fixes', 'Coûts Variables'],
+    datasets: [{
+      data: [
+        filteredCharges.filter(charge => charge.type === 'Fixe').reduce((sum, charge) => sum + charge.montant, 0),
+        filteredCharges.filter(charge => charge.type === 'Variable').reduce((sum, charge) => sum + charge.montant, 0)
+      ],
+      backgroundColor: ['#6B9080', '#718EBF'],
+      hoverBackgroundColor: ['#5A7A6C', '#6080AF'],
+    }],
+  };
   const project = projectDetails;
 
   return (
@@ -488,6 +501,7 @@ export default function ProjectView() {
       <main className="container mx-auto py-12 px-4">
         {/* Filters */}
         <div className="mb-8 flex flex-wrap gap-4">
+
           <div>
             <label className="text-[#232323] font-medium">Filter par produit</label>
             <Select.Root value={productFilter} onValueChange={setProductFilter}>
@@ -535,6 +549,30 @@ export default function ProjectView() {
             </Select.Root>
           </div>
           <div>
+          <div>
+  <label className="text-[#232323] font-medium">Filter par Type de Coût</label>
+  <Select.Root value={chargeTypeFilter} onValueChange={setChargeTypeFilter}>
+    <Select.Trigger className="inline-flex items-center justify-between rounded-md px-4 py-2 text-sm bg-white border border-[#718EBF] text-[#232323] hover:bg-[#f7f9fc]">
+      <Select.Value placeholder="Select a charge type" />
+      <Select.Icon />
+    </Select.Trigger>
+    <Select.Portal>
+      <Select.Content className="bg-white rounded-md shadow-lg border border-[#718EBF]">
+        <Select.Viewport>
+          <Select.Item value="all" className="px-4 py-2 hover:bg-[#f7f9fc] text-[#232323]">
+            <Select.ItemText>Tous les Types</Select.ItemText>
+          </Select.Item>
+          <Select.Item value="Fixe" className="px-4 py-2 hover:bg-[#f7f9fc] text-[#232323]">
+            <Select.ItemText>Fixe</Select.ItemText>
+          </Select.Item>
+          <Select.Item value="Variable" className="px-4 py-2 hover:bg-[#f7f9fc] text-[#232323]">
+            <Select.ItemText>Variable</Select.ItemText>
+          </Select.Item>
+        </Select.Viewport>
+      </Select.Content>
+    </Select.Portal>
+  </Select.Root>
+</div>
             <label className="text-[#232323] font-medium">Filter par Type de Charge </label>
             <Select.Root value={chargeFilter} onValueChange={setChargeFilter}>
               <Select.Trigger className="inline-flex items-center justify-between rounded-md px-4 py-2 text-sm bg-white border border-[#718EBF] text-[#232323] hover:bg-[#f7f9fc]">
@@ -557,6 +595,12 @@ export default function ProjectView() {
               </Select.Portal>
             </Select.Root>
           </div>
+          <Button 
+    onClick={() => window.open(`/costs?id=${projectId}`, '_blank')}
+    className="bg-gradient-to-r from-[#718EBF] to-[#6B9080] hover:from-[#6B9080] hover:to-[#718EBF] text-white h-10"
+  >
+    <PieChart className="mr-2 h-5 w-5" /> Visualiser Coûts
+  </Button>
         </div>
 
         {/* General Information */}
@@ -579,44 +623,83 @@ export default function ProjectView() {
 
         {/* Charts Section */}
         <div className={`transition-all duration-700 delay-100 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          <Card className="mb-8 shadow-lg border-t-4 border-[#6B9080] hover:shadow-xl">
-          <CardHeader>
-  <CardTitle className="text-[#232323] text-center">Visualisations d'analyse des coûts</CardTitle>
-</CardHeader>
+  <Card className="mb-8 shadow-lg border-t-4 border-[#6B9080] hover:shadow-xl">
+    <CardHeader>
+      <CardTitle className="text-[#232323] text-center">Visualisations d'analyse des coûts</CardTitle>
+    </CardHeader>
 
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Pie Chart: Indirect Costs */}
-                <div>
-                  <h3 className="text-lg font-semibold text-[#232323] mb-4">Répartition des coûts indirects</h3>
-                  {filteredCharges.length > 0 ? (
-                    <Pie data={pieChartData} options={{ responsive: true, plugins: { legend: { position: 'top' } } }} />
-                  ) : (
-                    <p className="text-[#6B9080]">Aucune donnée disponible pour les filtres sélectionnés..</p>
-                  )}
-                </div>
-                {/* Bar Chart: Unit Costs */}
-                <div>
-                  <h3 className="text-lg font-semibold text-[#232323] mb-4">Coûts unitaires par section</h3>
-                  {filteredSections.length > 0 ? (
-                    <Bar data={barChartData} options={{ responsive: true, plugins: { legend: { position: 'top' } } }} />
-                  ) : (
-                    <p className="text-[#6B9080]">Aucune donnée disponible pour les filtres sélectionnés...</p>
-                  )}
-                </div>
-                {/* Column Chart: Product Costs */}
-                <div className="md:col-span-2">
-                  <h3 className="text-lg font-semibold text-[#232323] mb-4">Coûts totaux par produit</h3>
-                  {filteredProducts.length > 0 ? (
-                    <Bar data={columnChartData} options={{ responsive: true, plugins: { legend: { position: 'top' } } }} />
-                  ) : (
-                    <p className="text-[#6B9080]">Aucune donnée disponible pour les filtres sélectionnés...</p>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+    <CardContent>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Pie Chart: Indirect Costs */}
+        <div>
+          <h3 className="text-lg font-semibold text-[#232323] mb-4">Répartition des coûts indirects</h3>
+          {filteredCharges.length > 0 ? (
+            <Pie data={pieChartData} options={{ responsive: true, plugins: { legend: { position: 'top' } } }} />
+          ) : (
+            <p className="text-[#6B9080]">Aucune donnée disponible pour les filtres sélectionnés..</p>
+          )}
         </div>
+
+        {/* Bar Chart: Unit Costs */}
+        <div>
+          <h3 className="text-lg font-semibold text-[#232323] mb-4">Coûts unitaires par section</h3>
+          {filteredSections.length > 0 ? (
+            <Bar data={barChartData} options={{ responsive: true, plugins: { legend: { position: 'top' } } }} />
+          ) : (
+            <p className="text-[#6B9080]">Aucune donnée disponible pour les filtres sélectionnés...</p>
+          )}
+        </div>
+
+        {/* Column Chart: Product Costs */}
+        <div className="md:col-span-2">
+          <h3 className="text-lg font-semibold text-[#232323] mb-4">Coûts totaux par produit</h3>
+          {filteredProducts.length > 0 ? (
+            <Bar data={columnChartData} options={{ responsive: true, plugins: { legend: { position: 'top' } } }} />
+          ) : (
+            <p className="text-[#6B9080]">Aucune donnée disponible pour les filtres sélectionnés...</p>
+          )}
+        </div>
+
+        {/* Fixed vs Variable Cost Chart - placed last and made visually bigger */}
+        <div className="md:col-span-2 bg-white p-8 rounded-2xl shadow-md border border-gray-100">
+          <h3 className="text-2xl font-bold text-gray-800 mb-8 text-center">Répartition Coûts Fixes / Variables</h3>
+          {filteredCharges.length > 0 ? (
+            <div className="w-full flex justify-center">
+              <div className="w-full max-w-xl">
+                <Pie
+                  data={fixedVariableChartData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: 'top',
+                        labels: {
+                          color: '#4B5563',
+                          font: {
+                            size: 15,
+                            weight: '500'
+                          }
+                        }
+                      }
+                    }
+                  }}
+                  height={300}
+                />
+              </div>
+            </div>
+          ) : (
+            <p className="text-center text-gray-400 italic">
+              Aucune donnée disponible pour les filtres sélectionnés.
+            </p>
+          )}
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+</div>
+
+
 
         {/* Indirect Costs */}
         <div className={`transition-all duration-700 delay-200 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
@@ -626,30 +709,41 @@ export default function ProjectView() {
               <CardTitle className="text-[#232323]">Couts Indirect</CardTitle>
             </CardHeader>
             <CardContent>
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-[#f7f9fc]">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[#232323] uppercase tracking-wider">Nature</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-[#232323] uppercase tracking-wider">Montant (€)</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredCharges.map((charge: any, index: number) => (
-                    <tr key={index} className="hover:bg-[#f7f9fc]">
-                      <td className="px-6 py-4 whitespace-nowrap text-[#6B9080]">{charge.nature}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-[#6B9080]">{charge.montant.toLocaleString()}</td>
-                    </tr>
-                  ))}
-                  {filteredCharges.length > 0 && (
-                    <tr className="bg-[#f7f9fc] font-semibold">
-                      <td className="px-6 py-4 whitespace-nowrap text-[#232323]">Total</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-[#232323]">
-                        {filteredCharges.reduce((sum: number, charge: any) => sum + charge.montant, 0).toLocaleString()}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+            <table className="min-w-full divide-y divide-gray-200">
+  <thead className="bg-[#f7f9fc]">
+    <tr>
+      <th className="px-6 py-3 text-left text-xs font-medium text-[#232323] uppercase tracking-wider">Nature</th>
+      <th className="px-6 py-3 text-center text-xs font-medium text-[#232323] uppercase tracking-wider">Type</th>
+      <th className="px-6 py-3 text-right text-xs font-medium text-[#232323] uppercase tracking-wider">Montant (€)</th>
+    </tr>
+  </thead>
+  <tbody className="bg-white divide-y divide-gray-200">
+    {filteredCharges.map((charge: any, index: number) => (
+      <tr key={index} className="hover:bg-[#f7f9fc]">
+        <td className="px-6 py-4 whitespace-nowrap text-[#6B9080]">{charge.nature}</td>
+        <td className="px-6 py-4 whitespace-nowrap text-center">
+          <span
+            className={`px-2 py-1 rounded-full text-xs font-medium ${
+              charge.type === 'Fixe' ? 'bg-[#A4C3B2] text-[#232323]' : 'bg-[#CCE3DE] text-[#232323]'
+            }`}
+          >
+            {charge.type}
+          </span>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-right text-[#6B9080]">{charge.montant.toLocaleString()}</td>
+      </tr>
+    ))}
+    {filteredCharges.length > 0 && (
+      <tr className="bg-[#f7f9fc] font-semibold">
+        <td className="px-6 py-4 whitespace-nowrap text-[#232323]">Total</td>
+        <td className="px-6 py-4"></td>
+        <td className="px-6 py-4 whitespace-nowrap text-right text-[#232323]">
+          {filteredCharges.reduce((sum: number, charge: any) => sum + charge.montant, 0).toLocaleString()}
+        </td>
+      </tr>
+    )}
+  </tbody>
+</table>
             </CardContent>
           </Card>
         </div>
@@ -861,24 +955,26 @@ export default function ProjectView() {
         )}
       </main>
 
-      <footer className="bg-[#232323] text-white py-8 mt-12">
+      <footer 
+        className={`bg-[#232323] text-white py-8 mt-20 transition-all duration-1000 delay-1000 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+      >
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-3 gap-8 mb-8">
             <div>
-              <h3 className="text-xl font-semibold mb-4">Analyses MSH</h3>
+              <h3 className="text-xl font-semibold mb-4">MSH Analytics</h3>
               <p className="text-gray-300">La solution complète pour la comptabilité analytique.</p>
             </div>
             <div>
               <h3 className="text-xl font-semibold mb-4">Liens rapides</h3>
               <ul className="space-y-2">
-                <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Accueil</a></li>
-                <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Documentation</a></li>
-                <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Contact</a></li>
+              <li><a href="/" className="hover:text-white/80 transition-colors">Accueil</a></li>
+              <li><a href="/tutorial" className="hover:text-white/80 transition-colors">Documentation</a></li>
+              <li><a href="mailto:s_boukhedimi@esi.dz" className="hover:text-white/80 transition-colors">Contact</a></li>
               </ul>
             </div>
             <div>
               <h3 className="text-xl font-semibold mb-4">Contact</h3>
-              <p className="text-gray-300">info@msh-analytics.fr</p>
+              <p className="text-gray-300">s_boukhedimi@esi.dz</p>
             </div>
           </div>
           <div className="border-t border-gray-700 pt-6 text-center">

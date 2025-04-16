@@ -41,10 +41,10 @@ export default function Home() {
           </div>
           <nav>
             <ul className="flex gap-6">
-              <li><a href="#" className="hover:text-white/80 transition-colors">Accueil</a></li>
-              <li><a href="#" className="hover:text-white/80 transition-colors">Documentation</a></li>
-              <li><a href="#" className="hover:text-white/80 transition-colors">Contact</a></li>
-            </ul>
+              <li><a href="/" className="hover:text-white/80 transition-colors">Accueil</a></li>
+              <li><a href="/tutorial" className="hover:text-white/80 transition-colors">Documentation</a></li>
+              <li><a href="mailto:s_boukhedimi@esi.dz" className="hover:text-white/80 transition-colors">Contact</a></li>
+              </ul>
           </nav>
         </div>
       </header>
@@ -179,14 +179,14 @@ export default function Home() {
             <div>
               <h3 className="text-xl font-semibold mb-4">Liens rapides</h3>
               <ul className="space-y-2">
-                <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Accueil</a></li>
-                <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Documentation</a></li>
-                <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Contact</a></li>
+              <li><a href="/" className="hover:text-white/80 transition-colors">Accueil</a></li>
+              <li><a href="/tutorial" className="hover:text-white/80 transition-colors">Documentation</a></li>
+              <li><a href="mailto:s_boukhedimi@esi.dz" className="hover:text-white/80 transition-colors">Contact</a></li>
               </ul>
             </div>
             <div>
               <h3 className="text-xl font-semibold mb-4">Contact</h3>
-              <p className="text-gray-300">info@msh-analytics.fr</p>
+              <p className="text-gray-300">s_boukhedimi@esi.dz</p>
             </div>
           </div>
           <div className="border-t border-gray-700 pt-6 text-center">
