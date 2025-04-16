@@ -16,9 +16,9 @@ export default function CreateProject() {
   const [projectData, setProjectData] = useState({
     nom: "",
     description: "",
-    produits: [{ nom: "", prix_vente: 0 }],
-    charges_indirectes: [{ nature: "", montant: 0, type: "Fix" }], 
-    sections: [{ nom: "", type: "primaire", unite_oeuvre: "" }],
+    produits: [{ nom: "" }],
+    charges_indirectes: [{ nature: "", montant: 0, type: "Fix" }],
+    sections: [{ nom: "", type: "Primaire" }],
     repartition_primaire: [],
     repartition_secondaire: [],
     unites_oeuvre: [],
@@ -41,26 +41,25 @@ export default function CreateProject() {
 
   const initializeRepartitionPrimaire = () => {
     const newRepartition = projectData.charges_indirectes.map(charge => {
-      const sectionsPrimaires = projectData.sections.filter(s => s.type === "primaire");
-      const sectionsSecondaires = projectData.sections.filter(s => s.type === "secondaire");
+      const sectionsPrimaires = projectData.sections.filter(s => s.type === "Primaire");
+      const sectionsSecondaires = projectData.sections.filter(s => s.type === "Secondaire");
       const allSections = [...sectionsPrimaires, ...sectionsSecondaires];
 
       const repartition = {
-        charge_nature: charge.nature,
-        charge_montant: charge.montant,
+        nature: charge.nature,
         repartition: allSections.map(section => ({
-          section_nom: section.nom,
+          section: section.nom,
           pourcentage: 0
         }))
       };
 
       const existingRepartition = projectData.repartition_primaire.find(
-        r => r.charge_nature === charge.nature
+        r => r.nature === charge.nature
       );
       if (existingRepartition) {
         existingRepartition.repartition.forEach(item => {
           const match = repartition.repartition.find(
-            r => r.section_nom === item.section_nom
+            r => r.section === item.section
           );
           if (match) {
             match.pourcentage = item.pourcentage;
@@ -75,25 +74,25 @@ export default function CreateProject() {
   };
 
   const initializeRepartitionSecondaire = () => {
-    const sectionsSecondaires = projectData.sections.filter(s => s.type === "secondaire");
-    const sectionsPrimaires = projectData.sections.filter(s => s.type === "primaire");
+    const sectionsSecondaires = projectData.sections.filter(s => s.type === "Secondaire");
+    const sectionsPrimaires = projectData.sections.filter(s => s.type === "Primaire");
 
     const newRepartition = sectionsSecondaires.map(sectionSec => {
       const repartition = {
-        section_secondaire: sectionSec.nom,
+        centre: sectionSec.nom,
         repartition: sectionsPrimaires.map(sectionPrim => ({
-          section_primaire: sectionPrim.nom,
+          section: sectionPrim.nom,
           pourcentage: 0
         }))
       };
 
       const existingRepartition = projectData.repartition_secondaire.find(
-        r => r.section_secondaire === sectionSec.nom
+        r => r.centre === sectionSec.nom
       );
       if (existingRepartition) {
         existingRepartition.repartition.forEach(item => {
           const match = repartition.repartition.find(
-            r => r.section_primaire === item.section_primaire
+            r => r.section === item.section
           );
           if (match) {
             match.pourcentage = item.pourcentage;
@@ -108,14 +107,14 @@ export default function CreateProject() {
   };
 
   const initializeUnitesOeuvre = () => {
-    const sectionsPrimaires = projectData.sections.filter(s => s.type === "primaire");
+    const sectionsPrimaires = projectData.sections.filter(s => s.type === "Primaire");
     const newUnites = sectionsPrimaires.map(section => {
       const existingUnite = projectData.unites_oeuvre.find(
         u => u.section === section.nom
       );
       return {
         section: section.nom,
-        unite: section.unite_oeuvre,
+        unite: "unit", // Default unit since unite_oeuvre is removed
         quantite: existingUnite ? existingUnite.quantite : 0
       };
     });
@@ -124,24 +123,24 @@ export default function CreateProject() {
   };
 
   const initializeConsommationProduits = () => {
-    const sectionsPrimaires = projectData.sections.filter(s => s.type === "primaire");
+    const sectionsPrimaires = projectData.sections.filter(s => s.type === "Primaire");
 
     const newConsommation = projectData.produits.map(produit => {
       const consommation = {
-        produit_nom: produit.nom,
+        produit: produit.nom,
         consommation: sectionsPrimaires.map(section => ({
-          section_nom: section.nom,
+          section: section.nom,
           quantite: 0
         }))
       };
 
       const existingConsommation = projectData.consommation_produits.find(
-        c => c.produit_nom === produit.nom
+        c => c.produit === produit.nom
       );
       if (existingConsommation) {
         existingConsommation.consommation.forEach(item => {
           const match = consommation.consommation.find(
-            c => c.section_nom === item.section_nom
+            c => c.section === item.section
           );
           if (match) {
             match.quantite = item.quantite;
@@ -158,11 +157,13 @@ export default function CreateProject() {
   const handleInputChange = (e, index, type) => {
     const { name, value } = e.target;
     let newValue = value;
-
-    if (name === "montant" || name === "prix_vente" || name === "pourcentage" || name === "quantite") {
-      newValue = parseFloat(value) || 0;
+  
+    if (name === "montant") {
+      newValue = parseInt(value, 10) || 0;  // Parse montant as integer
+    } else if (name === "pourcentage" || name === "quantite") {
+      newValue = parseFloat(value) || 0;  // Keep these as float
     }
-
+  
     if (type === "produits" || type === "charges_indirectes" || type === "sections" || type === "unites_oeuvre") {
       const updatedArray = [...projectData[type]];
       updatedArray[index][name] = newValue;
@@ -170,7 +171,7 @@ export default function CreateProject() {
     } else {
       setProjectData({ ...projectData, [name]: newValue });
     }
-
+  
     if (errors[type] || errors[name]) {
       const newErrors = { ...errors };
       delete newErrors[type];
@@ -219,7 +220,7 @@ export default function CreateProject() {
     if (type === "produits") {
       setProjectData({
         ...projectData,
-        produits: [...projectData.produits, { nom: "", prix_vente: 0 }]
+        produits: [...projectData.produits, { nom: "" }]
       });
     } else if (type === "charges_indirectes") {
       setProjectData({
@@ -229,7 +230,7 @@ export default function CreateProject() {
     } else if (type === "sections") {
       setProjectData({
         ...projectData,
-        sections: [...projectData.sections, { nom: "", type: "primaire", unite_oeuvre: "" }]
+        sections: [...projectData.sections, { nom: "", type: "Primaire" }]
       });
     }
   };
@@ -240,11 +241,11 @@ export default function CreateProject() {
 
     if (updatedArray.length === 0) {
       if (type === "produits") {
-        updatedArray.push({ nom: "", prix_vente: 0 });
+        updatedArray.push({ nom: "" });
       } else if (type === "charges_indirectes") {
         updatedArray.push({ nature: "", montant: 0 });
       } else if (type === "sections") {
-        updatedArray.push({ nom: "", type: "primaire", unite_oeuvre: "" });
+        updatedArray.push({ nom: "", type: "Primaire" });
       }
     }
 
@@ -260,29 +261,27 @@ export default function CreateProject() {
     }
 
     // Validation des produits
-    const produitsValid = projectData.produits.every(p => p.nom.trim() !== "" && p.prix_vente > 0);
+    const produitsValid = projectData.produits.every(p => p.nom.trim() !== "");
     if (!produitsValid) {
-      newErrors.produits = "Tous les produits doivent avoir un nom et un prix de vente supérieur à 0";
+      newErrors.produits = "Tous les produits doivent avoir un nom";
     }
 
     // Validation des charges indirectes
     const chargesValid = projectData.charges_indirectes.every(c => 
-        c.nature.trim() !== "" && c.montant > 0 && (c.type === "Fix" || c.type === "Variable")
-      );
-      if (!chargesValid) {
-        newErrors.charges_indirectes = "Toutes les charges doivent avoir une nature, un type et un montant supérieur à 0";
-      }
-      
-    // Validation des sections
-    const sectionsValid = projectData.sections.every(s =>
-      s.nom.trim() !== "" && (s.type === "primaire" ? s.unite_oeuvre.trim() !== "" : true)
+      c.nature.trim() !== "" && c.montant > 0 && (c.type === "Fix" || c.type === "Variable")
     );
+    if (!chargesValid) {
+      newErrors.charges_indirectes = "Toutes les charges doivent avoir une nature, un type et un montant supérieur à 0";
+    }
+    
+    // Validation des sections
+    const sectionsValid = projectData.sections.every(s => s.nom.trim() !== "");
     if (!sectionsValid) {
-      newErrors.sections = "Toutes les sections doivent avoir un nom et les sections primaires doivent avoir une unité d'œuvre";
+      newErrors.sections = "Toutes les sections doivent avoir un nom";
     }
 
     // Au moins une section primaire
-    const hasPrimary = projectData.sections.some(s => s.type === "primaire");
+    const hasPrimary = projectData.sections.some(s => s.type === "Primaire");
     if (!hasPrimary) {
       newErrors.sections_type = "Il doit y avoir au moins une section primaire";
     }
@@ -300,7 +299,7 @@ export default function CreateProject() {
         if (!newErrors.repartition_primaire) {
           newErrors.repartition_primaire = {};
         }
-        newErrors.repartition_primaire[index] = `La somme des pourcentages pour la charge "${repartition.charge_nature}" doit être égale à 100% (actuellement ${sum.toFixed(2)}%)`;
+        newErrors.repartition_primaire[index] = `La somme des pourcentages pour la charge "${repartition.nature}" doit être égale à 100% (actuellement ${sum.toFixed(2)}%)`;
       }
     });
 
@@ -311,7 +310,7 @@ export default function CreateProject() {
         if (!newErrors.repartition_secondaire) {
           newErrors.repartition_secondaire = {};
         }
-        newErrors.repartition_secondaire[index] = `La somme des pourcentages pour la section "${repartition.section_secondaire}" doit être égale à 100% (actuellement ${sum.toFixed(2)}%)`;
+        newErrors.repartition_secondaire[index] = `La somme des pourcentages pour la section "${repartition.centre}" doit être égale à 100% (actuellement ${sum.toFixed(2)}%)`;
       }
     });
 
@@ -354,7 +353,6 @@ export default function CreateProject() {
     try {
       const projectPayload = {
         projet: {
-          id: `PRJ-${new Date().getFullYear()}-${Math.random().toString(36).substr(2, 9)}`,
           nom: projectData.nom,
           description: projectData.description,
           lastUpdated: new Date().toLocaleDateString('fr-FR')
@@ -368,22 +366,28 @@ export default function CreateProject() {
         consommation_produits: projectData.consommation_produits
       };
 
-      console.log('Projet soumis (simulation) :', projectPayload);
+      const response = await fetch('http://127.0.0.1:8000/api/projets/complete/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(projectPayload),
+      });
 
-      // Simule l'appel API
-      // const response = await fetch('/api/projects', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify(projectPayload),
-      // });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Erreur HTTP: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Projet créé avec succès:', result);
 
       alert("Projet créé avec succès!");
+      // Optionally redirect after success
       // window.location.href = "/projects";
     } catch (error) {
-      console.error('Erreur lors de la soumission :', error);
-      setErrors({ ...errors, submit: "Erreur lors de la création du projet" });
+      console.error('Erreur lors de la soumission:', error);
+      setErrors({ ...errors, submit: error.message || "Erreur lors de la création du projet" });
     }
   };
 
@@ -506,20 +510,6 @@ export default function CreateProject() {
                               required
                             />
                           </div>
-                          <div className="md:w-1/3">
-                            <Label htmlFor={`produit-prix-${index}`} className="text-[#232323]">Prix de vente (€)</Label>
-                            <Input
-                              id={`produit-prix-${index}`}
-                              name="prix_vente"
-                              type="number"
-                              value={produit.prix_vente}
-                              onChange={(e) => handleInputChange(e, index, "produits")}
-                              className="border-[#718EBF]/30 focus:border-[#718EBF]"
-                              min="0"
-                              step="0.01"
-                              required
-                            />
-                          </div>
                           <div className="flex items-end pb-1">
                             <Button
                               type="button"
@@ -561,62 +551,62 @@ export default function CreateProject() {
                       </Alert>
                     )}
 
-{projectData.charges_indirectes.map((charge, index) => (
-  <Card key={index} className="p-4 bg-white shadow-sm border border-[#DFEAF2]">
-    <div className="flex flex-col md:flex-row gap-4">
-      <div className="flex-1">
-        <Label htmlFor={`charge-nature-${index}`} className="text-[#232323]">Nature de la charge</Label>
-        <Input
-          id={`charge-nature-${index}`}
-          name="nature"
-          value={charge.nature}
-          onChange={(e) => handleInputChange(e, index, "charges_indirectes")}
-          className="border-[#718EBF]/30 focus:border-[#718EBF]"
-          required
-        />
-      </div>
-      <div className="md:w-1/4">
-        <Label htmlFor={`charge-type-${index}`} className="text-[#232323]">Type</Label>
-        <select
-          id={`charge-type-${index}`}
-          name="type"
-          value={charge.type}
-          onChange={(e) => handleInputChange(e, index, "charges_indirectes")}
-          className="w-full p-2 border border-[#718EBF]/30 focus:border-[#718EBF] rounded"
-        >
-          <option value="Fix">Fix</option>
-          <option value="Variable">Variable</option>
-        </select>
-      </div>
-      <div className="md:w-1/3">
-        <Label htmlFor={`charge-montant-${index}`} className="text-[#232323]">Montant (€)</Label>
-        <Input
-          id={`charge-montant-${index}`}
-          name="montant"
-          type="number"
-          value={charge.montant}
-          onChange={(e) => handleInputChange(e, index, "charges_indirectes")}
-          className="border-[#718EBF]/30 focus:border-[#718EBF]"
-          min="0"
-          step="0.01"
-          required
-        />
-      </div>
-      <div className="flex items-end pb-1">
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          onClick={() => removeItem("charges_indirectes", index)}
-          className="text-[#232323] hover:bg-red-50 hover:text-red-600 border-[#718EBF]/30"
-          disabled={projectData.charges_indirectes.length <= 1}
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  </Card>
-))}
+                    {projectData.charges_indirectes.map((charge, index) => (
+                      <Card key={index} className="p-4 bg-white shadow-sm border border-[#DFEAF2]">
+                        <div className="flex flex-col md:flex-row gap-4">
+                          <div className="flex-1">
+                            <Label htmlFor={`charge-nature-${index}`} className="text-[#232323]">Nature de la charge</Label>
+                            <Input
+                              id={`charge-nature-${index}`}
+                              name="nature"
+                              value={charge.nature}
+                              onChange={(e) => handleInputChange(e, index, "charges_indirectes")}
+                              className="border-[#718EBF]/30 focus:border-[#718EBF]"
+                              required
+                            />
+                          </div>
+                          <div className="md:w-1/4">
+                            <Label htmlFor={`charge-type-${index}`} className="text-[#232323]">Type</Label>
+                            <select
+                              id={`charge-type-${index}`}
+                              name="type"
+                              value={charge.type}
+                              onChange={(e) => handleInputChange(e, index, "charges_indirectes")}
+                              className="w-full p-2 border border-[#718EBF]/30 focus:border-[#718EBF] rounded"
+                            >
+                              <option value="Fix">Fix</option>
+                              <option value="Variable">Variable</option>
+                            </select>
+                          </div>
+                          <div className="md:w-1/3">
+                            <Label htmlFor={`charge-montant-${index}`} className="text-[#232323]">Montant (€)</Label>
+                            <Input
+                              id={`charge-montant-${index}`}
+                              name="montant"
+                              type="number"
+                              value={charge.montant}
+                              onChange={(e) => handleInputChange(e, index, "charges_indirectes")}
+                              className="border-[#718EBF]/30 focus:border-[#718EBF]"
+                              min="0"
+                              step="1"
+                              required
+                            />
+                          </div>
+                          <div className="flex items-end pb-1">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => removeItem("charges_indirectes", index)}
+                              className="text-[#232323] hover:bg-red-50 hover:text-red-600 border-[#718EBF]/30"
+                              disabled={projectData.charges_indirectes.length <= 1}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
                   </div>
                 </TabsContent>
 
@@ -666,23 +656,9 @@ export default function CreateProject() {
                               onChange={(e) => handleInputChange(e, index, "sections")}
                               className="w-full p-2 border border-[#718EBF]/30 focus:border-[#718EBF] rounded"
                             >
-                              <option value="primaire">Primaire</option>
-                              <option value="secondaire">Secondaire</option>
+                              <option value="Primaire">Primaire</option>
+                              <option value="Secondaire">Secondaire</option>
                             </select>
-                          </div>
-                          <div className="md:w-1/3">
-                            <Label htmlFor={`section-uo-${index}`} className="text-[#232323]">
-                              Unité d'œuvre {section.type === "secondaire" && "(facultatif)"}
-                            </Label>
-                            <Input
-                              id={`section-uo-${index}`}
-                              name="unite_oeuvre"
-                              value={section.unite_oeuvre}
-                              onChange={(e) => handleInputChange(e, index, "sections")}
-                              className="border-[#718EBF]/30 focus:border-[#718EBF]"
-                              placeholder="ex: heure, kg, m²"
-                              required={section.type === "primaire"}
-                            />
                           </div>
                           <div className="flex items-end pb-1">
                             <Button
@@ -724,8 +700,8 @@ export default function CreateProject() {
                               id={`unite-section-${index}`}
                               name="section"
                               value={unite.section}
-                              className="border-[#718EBF]/30 bg-[#DFEAF2] cursor-not-allowed"
-                              disabled
+                              className="border-[#718EBF]/30 bg-[#DFEAF2]"
+                              onChange={(e) => handleInputChange(e, index, "unites_oeuvre")}
                             />
                           </div>
                           <div className="md:w-1/3">
@@ -734,8 +710,8 @@ export default function CreateProject() {
                               id={`unite-nom-${index}`}
                               name="unite"
                               value={unite.unite}
-                              className="border-[#718EBF]/30 bg-[#DFEAF2] cursor-not-allowed"
-                              disabled
+                              className="border-[#718EBF]/30 bg-[#DFEAF2]"
+                              onChange={(e) => handleInputChange(e, index, "unites_oeuvre")}
                             />
                           </div>
                           <div className="md:w-1/3">
@@ -773,7 +749,7 @@ export default function CreateProject() {
                         <div className="space-y-4">
                           <div className="flex justify-between items-center">
                             <h4 className="text-md font-medium text-[#232323]">
-                              {repartition.charge_nature || "Charge sans nom"} ({repartition.charge_montant.toFixed(2)} €)
+                              {repartition.nature || "Charge sans nom"}
                             </h4>
                             <span className={`text-sm ${calculateTotalRepartitionPrimaire(chargeIndex) === 100 ? 'text-[#6B9080]' : 'text-red-500'}`}>
                               Total: {calculateTotalRepartitionPrimaire(chargeIndex).toFixed(2)}%
@@ -783,7 +759,7 @@ export default function CreateProject() {
                             {repartition.repartition.map((section, sectionIndex) => (
                               <div key={sectionIndex}>
                                 <Label htmlFor={`repartition-primaire-${chargeIndex}-${sectionIndex}`} className="text-[#232323]">
-                                  {section.section_nom} (%)
+                                  {section.section} (%)
                                 </Label>
                                 <Input
                                   id={`repartition-primaire-${chargeIndex}-${sectionIndex}`}
@@ -822,7 +798,7 @@ export default function CreateProject() {
                         <div className="space-y-4">
                           <div className="flex justify-between items-center">
                             <h4 className="text-md font-medium text-[#232323]">
-                              {repartition.section_secondaire}
+                              {repartition.centre}
                             </h4>
                             <span className={`text-sm ${calculateTotalRepartitionSecondaire(sectionIndex) === 100 ? 'text-[#6B9080]' : 'text-red-500'}`}>
                               Total: {calculateTotalRepartitionSecondaire(sectionIndex).toFixed(2)}%
@@ -832,7 +808,7 @@ export default function CreateProject() {
                             {repartition.repartition.map((section, sectionPrimIndex) => (
                               <div key={sectionPrimIndex}>
                                 <Label htmlFor={`repartition-secondaire-${sectionIndex}-${sectionPrimIndex}`} className="text-[#232323]">
-                                  {section.section_primaire} (%)
+                                  {section.section} (%)
                                 </Label>
                                 <Input
                                   id={`repartition-secondaire-${sectionIndex}-${sectionPrimIndex}`}
@@ -867,13 +843,13 @@ export default function CreateProject() {
                       <Card key={produitIndex} className="p-4 bg-white shadow-sm border border-[#DFEAF2]">
                         <div className="space-y-4">
                           <h4 className="text-md font-medium text-[#232323]">
-                            {consommation.produit_nom || "Produit sans nom"}
+                            {consommation.produit || "Produit sans nom"}
                           </h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {consommation.consommation.map((section, sectionIndex) => (
                               <div key={sectionIndex}>
                                 <Label htmlFor={`consommation-${produitIndex}-${sectionIndex}`} className="text-[#232323]">
-                                  {section.section_nom} (quantité)
+                                  {section.section} (quantité)
                                 </Label>
                                 <Input
                                   id={`consommation-${produitIndex}-${sectionIndex}`}
@@ -919,9 +895,9 @@ export default function CreateProject() {
             <div>
               <h3 className="text-xl font-semibold mb-4">Liens rapides</h3>
               <ul className="space-y-2">
-              <li><a href="/" className="hover:text-white/80 transition-colors">Accueil</a></li>
-              <li><a href="/tutorial" className="hover:text-white/80 transition-colors">Documentation</a></li>
-              <li><a href="mailto:s_boukhedimi@esi.dz" className="hover:text-white/80 transition-colors">Contact</a></li>
+                <li><a href="/" className="hover:text-white/80 transition-colors">Accueil</a></li>
+                <li><a href="/tutorial" className="hover:text-white/80 transition-colors">Documentation</a></li>
+                <li><a href="mailto:s_boukhedimi@esi.dz" className="hover:text-white/80 transition-colors">Contact</a></li>
               </ul>
             </div>
             <div>

@@ -1,40 +1,83 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Folder, ArrowRight, Home } from "lucide-react";
+import { PlusCircle, Folder, ArrowRight, Home, RefreshCw } from "lucide-react";
 import Link from 'next/link';
 
 export default function ProjectsPage() {
-  const [isLoaded, setIsLoaded] = useState(true);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [projects, setProjects] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Exemple de données - à remplacer par des données dynamiques
-  const projects = [
-    {
-      id_: "PRJ-2025-002", 
-      name: "ALFA",
-      description: "Analyse détaillée des coûts de revient du nouveau produit X par méthode des sections homogènes.",
-      lastUpdated: "08/04/2025"
-    },
-    {
-      id: "PRJ-2025-003",
-      name: "Budget Prévisionnel 2026",
-      description: "Préparation du budget prévisionnel pour l'année fiscale 2026 avec méthode des sections homogènes.",
-      lastUpdated: "12/04/2025"
-    },
-    {
-      id: "PRJ-2025-004",
-      name: "Étude Rentabilité Produit X",
-      description: "Analyse détaillée des coûts de revient du nouveau produit X par méthode des sections homogènes.",
-      lastUpdated: "08/04/2025"
-    },
-    {
-      id: "PRJ-2025-005",
-      name: "Réorganisation Sections Auxiliaires",
-      description: "Projet d'optimisation des sections auxiliaires pour améliorer l'allocation des coûts indirects.",
-      lastUpdated: "03/04/2025"
+  // API base URL - ideally should come from environment variable
+  // const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+  const API_URL = 'http://127.0.0.1:8000';
+
+  const fetchProjects = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Add credentials and proper headers
+      const response = await fetch(`${API_URL}/api/projets/`, {
+        method: 'GET',
+        credentials: 'include', // Include cookies if needed for authentication
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error fetching projects: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log("Projects data:", data);
+      setProjects(data);
+      setIsLoaded(true);
+    } catch (err) {
+      console.error("Failed to fetch projects:", err);
+      setError(err.message || "Network error when connecting to API");
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  };
+
+  // Fetch projects when component mounts
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+  
+  // Handle API connection check
+  const checkApiConnection = async () => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(`${API_URL}`, {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      return response.ok;
+    } catch (error) {
+      console.error("API connection check failed:", error);
+      return false;
+    }
+  };
+
+  // Function to handle manual retry with connection check
+  const handleRetry = async () => {
+    const isConnected = await checkApiConnection();
+    if (!isConnected) {
+      setError("Unable to connect to the API server. Please ensure the server is running at " + API_URL);
+    } else {
+      fetchProjects();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-[#f7f9fc]">
@@ -67,7 +110,17 @@ export default function ProjectsPage() {
               </p>
             </div>
 
-            {projects.length === 0 ? (
+            <div className="flex gap-2">
+              <Button 
+                onClick={fetchProjects}
+                variant="outline"
+                className="border-[#718EBF] text-[#718EBF] hover:bg-[#718EBF]/10"
+                disabled={isLoading}
+              >
+                <RefreshCw className={`mr-2 h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} />
+                Actualiser
+              </Button>
+
               <Button 
                 className="bg-gradient-to-r from-[#718EBF] to-[#6B9080] hover:from-[#6B9080] hover:to-[#718EBF] text-white shadow-md transition-all duration-300"
                 size="lg"
@@ -75,25 +128,49 @@ export default function ProjectsPage() {
               >
                 <Link href="/formulaire">
                   <PlusCircle className="mr-2 h-5 w-5" />
-                  Créer mon premier projet
+                  {projects.length === 0 ? 'Créer mon premier projet' : 'Nouveau projet'}
                 </Link>
               </Button>
-            ) : (
-              <Button 
-                className="bg-gradient-to-r from-[#718EBF] to-[#6B9080] hover:from-[#6B9080] hover:to-[#718EBF] text-white shadow-md transition-all duration-300"
-                size="lg"
-                asChild
-              >
-                <Link href="/formulaire">
-                  <PlusCircle className="mr-2 h-5 w-5" />
-                  Nouveau projet
-                </Link>
-              </Button>
-            )}
+            </div>
           </div>
 
           <div className="mt-8">
-            {projects.map((project) => (
+            {/* Loading state */}
+            {isLoading && !error && (
+              <div className="text-center py-8">
+                <RefreshCw className="mx-auto h-8 w-8 text-[#718EBF] animate-spin" />
+                <p className="mt-4 text-[#6B9080]">Chargement des projets...</p>
+              </div>
+            )}
+
+            {/* Error state */}
+            {error && (
+              <div className="text-center py-8 bg-red-50 rounded-lg border border-red-200 p-6">
+                <p className="text-red-600 mb-4">Une erreur est survenue lors du chargement des projets.</p>
+                <p className="text-red-500 text-sm mb-4">{error}</p>
+                <div className="space-y-4">
+                  <div className="bg-yellow-50 p-4 rounded-lg text-sm text-yellow-800">
+                    <p className="font-medium mb-2">Causes possibles:</p>
+                    <ul className="list-disc pl-5 space-y-1">
+                      <li>Le serveur API n'est pas démarré</li>
+                      <li>Problème de CORS (Cross-Origin Resource Sharing)</li>
+                      <li>URL incorrecte ou problème de réseau</li>
+                    </ul>
+                  </div>
+                  <Button 
+                    onClick={handleRetry}
+                    variant="outline"
+                    className="border-red-500 text-red-500 hover:bg-red-50"
+                  >
+                    <RefreshCw className="mr-2 h-5 w-5" />
+                    Réessayer
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Projects list */}
+            {!isLoading && !error && projects.map((project) => (
               <Card 
                 key={project.id} 
                 className="mb-4 hover:shadow-md transition-all duration-200 border-l-4 border-l-[#718EBF]"
@@ -105,7 +182,7 @@ export default function ProjectsPage() {
                         <Folder className="h-5 w-5 text-[#718EBF]" />
                         {project.name}
                       </CardTitle>
-                      <CardDescription>Dernière modification: {project.lastUpdated}</CardDescription>
+                      <CardDescription>Dernière modification: {project.last_updated}</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <p className="text-sm text-[#6B9080]">
@@ -128,8 +205,8 @@ export default function ProjectsPage() {
             ))}
           </div>
 
-          {/* Affichage si aucun projet */}
-          {projects.length === 0 && (
+          {/* Empty state */}
+          {!isLoading && !error && projects.length === 0 && (
             <div className="text-center py-16">
               <div className="mb-4 text-[#6B9080]/50">
                 <Folder className="mx-auto h-16 w-16" />
@@ -138,9 +215,12 @@ export default function ProjectsPage() {
               <p className="text-[#6B9080] mb-6">Vous n'avez pas encore créé de projet d'analyse</p>
               <Button 
                 className="bg-gradient-to-r from-[#718EBF] to-[#6B9080] hover:from-[#6B9080] hover:to-[#718EBF] text-white"
+                asChild
               >
-                <PlusCircle className="mr-2 h-5 w-5" />
-                Créer mon premier projet
+                <Link href="/formulaire">
+                  <PlusCircle className="mr-2 h-5 w-5" />
+                  Créer mon premier projet
+                </Link>
               </Button>
             </div>
           )}

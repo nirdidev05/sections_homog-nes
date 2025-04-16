@@ -15,136 +15,8 @@ import * as Select from '@radix-ui/react-select';
 // Register Chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend, BarElement, CategoryScale, LinearScale);
 
-// Données des projets (basées sur le nouveau contexte)
-const projectsData = [
-  {
-    id: "PRJ-2025-003",
-    name: "BETA",
-    description: "Répartition des charges indirectes pour les produits X et Y selon la méthode des sections homogènes.",
-    lastUpdated: "2025-04-15"
-  }
-];
-
-const projectDetailsData: Record<string, any> = {
-  "PRJ-2025-003": {
-    projet: {
-      id: "PRJ-2025-003",
-      nom: "BETA",
-      description: "Répartition des charges indirectes pour les produits X et Y selon la méthode des sections homogènes.",
-      lastUpdated: "2025-04-15"
-    },
-    produits: [
-      { nom: "Produit X" },
-      { nom: "Produit Y" }
-    ],
-    charges_indirectes: [
-      { nature: "Loyer", montant: 100000, type: "Fixe" },
-      { nature: "Électricité", montant: 50000, type: "Variable" },
-      { nature: "Entretien", montant: 20000, type: "Fixe" },
-      { nature: "Salaires indirects", montant: 80000, type: "Fixe" },
-      { nature: "Eau et lubrifiants", montant: 30000, type: "Variable" },
-      { nature: "Amortissements", montant: 40000, type: "Fixe" }
-    ],
-    sections: [
-      { nom: "Atelier 1", type: "primaire" },
-      { nom: "Atelier 2", type: "primaire" },
-      { nom: "Magasin", type: "secondaire" },
-      { nom: "Administration", type: "secondaire" }
-    ],
-    repartition_primaire: [
-      {
-        nature: "Loyer",
-        repartition: [
-          { section: "Atelier 1", pourcentage: 50 },
-          { section: "Atelier 2", pourcentage: 30 },
-          { section: "Magasin", pourcentage: 10 },
-          { section: "Administration", pourcentage: 10 }
-        ]
-      },
-      {
-        nature: "Électricité",
-        repartition: [
-          { section: "Atelier 1", pourcentage: 40 },
-          { section: "Atelier 2", pourcentage: 40 },
-          { section: "Magasin", pourcentage: 10 },
-          { section: "Administration", pourcentage: 10 }
-        ]
-      },
-      {
-        nature: "Entretien",
-        repartition: [
-          { section: "Atelier 1", pourcentage: 40 },
-          { section: "Atelier 2", pourcentage: 30 },
-          { section: "Magasin", pourcentage: 20 },
-          { section: "Administration", pourcentage: 10 }
-        ]
-      },
-      {
-        nature: "Salaires indirects",
-        repartition: [
-          { section: "Atelier 1", pourcentage: 30 },
-          { section: "Atelier 2", pourcentage: 40 },
-          { section: "Magasin", pourcentage: 20 },
-          { section: "Administration", pourcentage: 10 }
-        ]
-      },
-      {
-        nature: "Eau et lubrifiants",
-        repartition: [
-          { section: "Atelier 1", pourcentage: 50 },
-          { section: "Atelier 2", pourcentage: 30 },
-          { section: "Magasin", pourcentage: 10 },
-          { section: "Administration", pourcentage: 10 }
-        ]
-      },
-      {
-        nature: "Amortissements",
-        repartition: [
-          { section: "Atelier 1", pourcentage: 60 },
-          { section: "Atelier 2", pourcentage: 20 },
-          { section: "Magasin", pourcentage: 10 },
-          { section: "Administration", pourcentage: 10 }
-        ]
-      }
-    ],
-    repartition_secondaire: [
-      {
-        centre: "Magasin",
-        repartition: [
-          { section: "Atelier 1", pourcentage: 70 },
-          { section: "Atelier 2", pourcentage: 30 }
-        ]
-      },
-      {
-        centre: "Administration",
-        repartition: [
-          { section: "Atelier 1", pourcentage: 50 },
-          { section: "Atelier 2", pourcentage: 50 }
-        ]
-      }
-    ],
-    unites_oeuvre: [
-      { section: "Atelier 1", unite: "Heure machine", quantite: 2500 },
-      { section: "Atelier 2", unite: "Heure de travail", quantite: 2000 }
-    ],
-    consommation_produits: [
-      {
-        produit: "Produit X",
-        consommation: [
-          { section: "Atelier 1", quantite: 2 },
-          { section: "Atelier 2", quantite: 1 }
-        ]
-      },
-      {
-        produit: "Produit Y",
-        consommation: [
-          { section: "Atelier 1", quantite: 1 },
-          { section: "Atelier 2", quantite: 2 }
-        ]
-      }
-    ]
-  }
-};
+// API base URL
+const API_URL = 'http://127.0.0.1:8000';
 
 export default function ProjectView() {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -153,35 +25,94 @@ export default function ProjectView() {
   const [sectionFilter, setSectionFilter] = useState('all');
   const [chargeFilter, setChargeFilter] = useState('all');
   const [chargeTypeFilter, setChargeTypeFilter] = useState('all');
+  const [projects, setProjects] = useState([]);
+  const [projectDetails, setProjectDetails] = useState(null);
+  const [error, setError] = useState(null);
+  const [isProjectLoading, setIsProjectLoading] = useState(true);
+  
   const searchParams = useSearchParams();
   const projectId = searchParams?.get('id') || '';
 
+  // Fetch projects list
   useEffect(() => {
-    setIsLoaded(true);
+    const fetchProjects = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/projets/`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Error fetching projects: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setProjects(data);
+      } catch (err) {
+        console.error('Failed to fetch projects:', err);
+        setError(err.message);
+      }
+    };
+    
+    fetchProjects();
   }, []);
 
-  const projectDetails = projectDetailsData[projectId];
-  const projectBasic = !projectDetails && projectsData.find((p) => p.id === projectId);
+  // Fetch project details
+  useEffect(() => {
+    const fetchProjectDetails = async () => {
+      if (!projectId) return;
+      
+      setIsProjectLoading(true);
+      try {
+        const response = await fetch(`${API_URL}/api/projet/custom/${projectId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Error fetching project details: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setProjectDetails(data);
+        setIsProjectLoading(false);
+        setIsLoaded(true);
+      } catch (err) {
+        console.error('Failed to fetch project details:', err);
+        setError(err.message);
+        setIsProjectLoading(false);
+      }
+    };
+    
+    fetchProjectDetails();
+  }, [projectId]);
+
+  // Find basic project info from projects list when details aren't available
+  const projectBasic = !projectDetails && projects.find((p) => p.id === projectId);
 
   // Filter data based on selections
-  const filteredCharges = projectDetails?.charges_indirectes?.filter((charge: any) =>
+  const filteredCharges = projectDetails?.charges_indirectes?.filter((charge) =>
     (chargeFilter === 'all' || charge.nature === chargeFilter) &&
     (chargeTypeFilter === 'all' || charge.type === chargeTypeFilter)
   ) || [];
 
-  const filteredSections = projectDetails?.sections?.filter((section: any) =>
+  const filteredSections = projectDetails?.sections?.filter((section) =>
     sectionFilter === 'all' || section.nom === sectionFilter
   ) || [];
 
-  const filteredProducts = projectDetails?.produits?.filter((product: any) =>
+  const filteredProducts = projectDetails?.produits?.filter((product) =>
     productFilter === 'all' || product.nom === productFilter
   ) || [];
 
   // Pie Chart Data for Indirect Costs
   const pieChartData = {
-    labels: filteredCharges.map((charge: any) => charge.nature),
+    labels: filteredCharges.map((charge) => charge.nature),
     datasets: [{
-      data: filteredCharges.map((charge: any) => charge.montant),
+      data: filteredCharges.map((charge) => charge.montant),
       backgroundColor: ['#718EBF', '#6B9080', '#A4C3B2', '#CCE3DE', '#EAF4F4', '#F6FFF8'],
       hoverBackgroundColor: ['#6B9080', '#718EBF', '#A4C3B2', '#CCE3DE', '#EAF4F4', '#F6FFF8'],
     }],
@@ -189,11 +120,11 @@ export default function ProjectView() {
 
   // Bar Chart Data for Unit Costs
   const barChartData = {
-    labels: filteredSections.map((section: any) => section.nom),
+    labels: filteredSections.map((section) => section.nom),
     datasets: [{
       label: 'Unit Cost (€)',
-      data: filteredSections.map((section: any) => {
-        const unit = projectDetails?.unites_oeuvre?.find((u: any) => u.section === section.nom);
+      data: filteredSections.map((section) => {
+        const unit = projectDetails?.unites_oeuvre?.find((u) => u.section === section.nom);
         return unit ? (unit.quantite ? 1000 / unit.quantite : 0) : 0;
       }),
       backgroundColor: '#718EBF',
@@ -204,12 +135,12 @@ export default function ProjectView() {
 
   // Column Chart Data for Product Costs
   const columnChartData = {
-    labels: filteredProducts.map((product: any) => product.nom),
+    labels: filteredProducts.map((product) => product.nom),
     datasets: [{
       label: 'Total Cost (€)',
-      data: filteredProducts.map((product: any) => {
-        const conso = projectDetails?.consommation_produits?.find((c: any) => c.produit === product.nom);
-        return conso ? conso.consommation.reduce((sum: number, c: any) => sum + c.quantite * 100, 0) : 0;
+      data: filteredProducts.map((product) => {
+        const conso = projectDetails?.consommation_produits?.find((c) => c.produit === product.nom);
+        return conso ? conso.consommations.reduce((sum, c) => sum + c.quantite * 100, 0) : 0;
       }),
       backgroundColor: '#6B9080',
       borderColor: '#718EBF',
@@ -222,7 +153,7 @@ export default function ProjectView() {
     labels: ['Coûts Fixes', 'Coûts Variables'],
     datasets: [{
       data: [
-        filteredCharges.filter(charge => charge.type === 'Fixe').reduce((sum, charge) => sum + charge.montant, 0),
+        filteredCharges.filter(charge => charge.type === 'Fix').reduce((sum, charge) => sum + charge.montant, 0),
         filteredCharges.filter(charge => charge.type === 'Variable').reduce((sum, charge) => sum + charge.montant, 0)
       ],
       backgroundColor: ['#6B9080', '#718EBF'],
@@ -231,7 +162,7 @@ export default function ProjectView() {
   };
 
   // Export to PDF
-  const exportToPDF = (data: any) => {
+  const exportToPDF = (data) => {
     setIsLoading(true);
     const doc = new jsPDF();
     const margin = 10;
@@ -257,37 +188,37 @@ export default function ProjectView() {
       headStyles: { fillColor: '#718EBF', textColor: '#FFFFFF' },
       bodyStyles: { textColor: '#232323' },
     });
-    y = (doc as any).lastAutoTable.finalY + 10;
+    y = (doc).lastAutoTable.finalY + 10;
 
     // Indirect Costs
     autoTable(doc, {
       startY: y,
       head: [['Nature', 'Type', 'Montant (€)']],
-      body: filteredCharges.map((c: any) => [c.nature, c.type, c.montant.toLocaleString()]),
+      body: filteredCharges.map((c) => [c.nature, c.type, c.montant.toLocaleString()]),
       theme: 'striped',
       headStyles: { fillColor: '#718EBF', textColor: '#FFFFFF' },
     });
-    y = (doc as any).lastAutoTable.finalY + 10;
+    y = (doc).lastAutoTable.finalY + 10;
 
     // Sections
     autoTable(doc, {
       startY: y,
       head: [['Nom', 'Type']],
-      body: filteredSections.map((s: any) => [s.nom, s.type]),
+      body: filteredSections.map((s) => [s.nom, s.type]),
       theme: 'striped',
       headStyles: { fillColor: '#718EBF', textColor: '#FFFFFF' },
     });
-    y = (doc as any).lastAutoTable.finalY + 10;
+    y = (doc).lastAutoTable.finalY + 10;
 
     // Products
     autoTable(doc, {
       startY: y,
       head: [['Nom']],
-      body: filteredProducts.map((p: any) => [p.nom]),
+      body: filteredProducts.map((p) => [p.nom]),
       theme: 'striped',
       headStyles: { fillColor: '#718EBF', textColor: '#FFFFFF' },
     });
-    y = (doc as any).lastAutoTable.finalY + 10;
+    y = (doc).lastAutoTable.finalY + 10;
 
     // Charts Placeholder
     doc.setFontSize(14);
@@ -300,9 +231,9 @@ export default function ProjectView() {
   };
 
   // Export to CSV
-  const exportToCSV = (data: any) => {
+  const exportToCSV = (data) => {
     setIsLoading(true);
-    const csvData: any[] = [
+    const csvData = [
       ['Project Information'],
       ['ID', data.projet.id],
       ['Name', data.projet.nom],
@@ -311,14 +242,14 @@ export default function ProjectView() {
       [],
       ['Filtered Indirect Costs'],
       ['Nature', 'Type', 'Amount (€)'],
-      ...filteredCharges.map((c: any) => [c.nature, c.type, c.montant]),
+      ...filteredCharges.map((c) => [c.nature, c.type, c.montant]),
       [],
       ['Filtered Sections'],
       ['Name', 'Type'],
-      ...filteredSections.map((s: any) => [s.nom, s.type]),
+      ...filteredSections.map((s) => [s.nom, s.type]),
       [],
       ['Filtered Products'],
-      ...filteredProducts.map((p: any) => [p.nom]),
+      ...filteredProducts.map((p) => [p.nom]),
     ];
 
     const csv = Papa.unparse(csvData);
@@ -344,6 +275,39 @@ export default function ProjectView() {
       </div>
     </div>
   );
+
+  // Main loader for initial project data
+  if (isProjectLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-white to-[#f7f9fc] flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-lg text-center">
+          <div className="w-16 h-16 border-4 border-t-[#718EBF] border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin mx-auto mb-6"></div>
+          <p className="text-xl font-medium text-[#232323]">Chargement des données du projet...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error handling
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-white to-[#f7f9fc] flex items-center justify-center">
+        <Card className="w-full max-w-md shadow-lg border border-red-300">
+          <CardHeader>
+            <CardTitle className="text-center text-red-600">Erreur de chargement</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center">
+            <p className="mb-4 text-[#6B9080]">{error}</p>
+            <Link href="/centers">
+              <Button className="bg-gradient-to-r from-[#718EBF] to-[#6B9080] hover:from-[#6B9080] hover:to-[#718EBF] text-white">
+                <ArrowLeft className="mr-2 h-5 w-5" /> Retour aux projets
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Handle project not found
   if (!projectDetails && !projectBasic) {
@@ -406,7 +370,6 @@ export default function ProjectView() {
   }
 
   const project = projectDetails;
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-[#f7f9fc]">
       {isLoading && <Loader />}
@@ -870,7 +833,7 @@ export default function ProjectView() {
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {conso.consommation.map((c: any, idx: number) => (
+                        {conso.consommations.map((c: any, idx: number) => (
                           <tr key={idx} className="hover:bg-[#f7f9fc]">
                             <td className="px-6 py-4 whitespace-nowrap text-[#6B9080]">{c.section}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-[#6B9080]">{c.quantite}</td>
